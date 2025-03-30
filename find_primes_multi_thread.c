@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 #include "is_prime.h"
 
 #define MAX_NUMBER 1000000
@@ -9,19 +10,26 @@
 typedef struct{
     int first;
     int last;
+    int prime_numbers[MAX_NUMBER / MAX_THREAD];
 }Data;
 
 void *thread_find_primes(void *arg){
     Data *data = (Data *)arg;
+    int prime_counter = 0;
     for(int i = data->first; i <= data->last; i++){
         if(is_prime(i)){
-            printf("%d\n", i);
+            data->prime_numbers[prime_counter] = i;
+            prime_counter++;
         }
     }
+    data->prime_numbers[prime_counter] = -1; // terminator signal
     return NULL;
 }
 
 int main(int argc, char *argv[]){
+    // initial time
+    clock_t start_time = clock();
+
     pthread_t threads[MAX_THREAD];
     Data threads_datas[MAX_THREAD];
     int range = MAX_NUMBER / MAX_THREAD;
@@ -43,6 +51,30 @@ int main(int argc, char *argv[]){
     for(int i = 0; i < MAX_THREAD; i++){
         pthread_join(threads[i], NULL);
     }
+
+    int prime_numbers[MAX_NUMBER / 2];
+    int prime_numbers_counter = 0;
+    for(int i = 0; i < MAX_THREAD; i++){
+        int j = 0;
+        while(threads_datas[i].prime_numbers[j] != -1){
+            prime_numbers[prime_numbers_counter] = threads_datas[i].prime_numbers[j];
+            prime_numbers_counter++;
+            j++;
+        }
+    }
+    prime_numbers[prime_numbers_counter] = -1; // terminator signal
+
+    int k = 0;
+    while(prime_numbers[k] != -1){
+        printf("%d is prime\n", prime_numbers[k]);
+        k++;
+    }
+
+    // finish time
+    clock_t finish_time = clock();
+
+    double execution_time = (double)(finish_time - start_time) / CLOCKS_PER_SEC;
+    printf("Execution time: %.6f seconds\n", execution_time);
 
     return 0;
 }
